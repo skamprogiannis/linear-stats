@@ -11,8 +11,6 @@ type stats struct {
 	median            int
 	variance          int
 	standardDeviation int
-	firstQuartile     int
-	thirdQuartile     int
 }
 
 // calculateStats returns rounded descriptive statistics for nums.
@@ -30,8 +28,6 @@ func calculateStats(nums []int) stats {
 	if len(sorted)%2 == 0 {
 		median = float64(sorted[mid-1]+sorted[mid]) / 2
 	}
-	firstQuartile := sorted[len(sorted)/4]
-	thirdQuartile := sorted[(len(sorted)*3)/4]
 
 	squaredDeviationSum := 0.0
 	for _, n := range nums {
@@ -45,7 +41,5 @@ func calculateStats(nums []int) stats {
 		median:            int(math.Round(median)),
 		variance:          int(math.Round(variance)),
 		standardDeviation: int(math.Round(math.Sqrt(variance))),
-		firstQuartile:     firstQuartile,
-		thirdQuartile:     thirdQuartile,
 	}
 }
