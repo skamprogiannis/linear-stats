@@ -1,52 +1,51 @@
 package main
 
 import (
+	"errors"
 	"math"
-	"sort"
 )
 
-// stats contains rounded descriptive statistics for a set of integers.
-type stats struct {
-	average           int
-	median            int
-	variance          int
-	standardDeviation int
+var (
+	errInsufficientValues   = errors.New("at least two values are required")
+	errUndefinedCorrelation = errors.New("Pearson correlation coefficient is undefined for constant values")
+)
+
+type regressionSums struct {
+	meanX             float64
+	meanY             float64
+	covariance        float64
+	xDeviationSquared float64
+	yDeviationSquared float64
 }
 
-// calculateStats returns rounded descriptive statistics for nums.
-func calculateStats(nums []int) stats {
-	sum := 0
-	for _, n := range nums {
-		sum += n
-	}
-	average := float64(sum) / float64(len(nums))
-
-	sorted := append([]int(nil), nums...)
-	sort.Ints(sorted)
-	mid := len(sorted) / 2
-	median := float64(sorted[mid])
-	if len(sorted)%2 == 0 {
-		median = float64(sorted[mid-1]+sorted[mid]) / 2
+func getLinearRegressionLine(values []int) (slope, intercept float64, err error) {
+	sums, err := calculateRegressionSums(values)
+	if err != nil {
+		return 0, 0, err
 	}
 
-	squaredDeviationSum := 0.0
-	for _, n := range nums {
-		deviation := float64(n) - average
-		squaredDeviationSum += deviation * deviation
-	}
-	variance := squaredDeviationSum / float64(len(nums))
-
-	return stats{
-		average:           int(math.Round(average)),
-		median:            int(math.Round(median)),
-		variance:          int(math.Round(variance)),
-		standardDeviation: int(math.Round(math.Sqrt(variance))),
-	}
+	slope = sums.covariance / sums.xDeviationSquared
+	intercept = sums.meanY - slope*sums.meanX
+	return slope, intercept, nil
 }
 
-func getPearsonCorrelationCoefficient(values []int) float64 {
+func getPearsonCorrelationCoefficient(values []int) (float64, error) {
+	sums, err := calculateRegressionSums(values)
+	if err != nil {
+		return 0, err
+	}
+
+	denominator := math.Sqrt(sums.xDeviationSquared * sums.yDeviationSquared)
+	if denominator == 0 {
+		return 0, errUndefinedCorrelation
+	}
+
+	return sums.covariance / denominator, nil
+}
+
+func calculateRegressionSums(values []int) (regressionSums, error) {
 	if len(values) < 2 {
-		return math.NaN()
+		return regressionSums{}, errInsufficientValues
 	}
 
 	var sumX, sumY float64
@@ -55,23 +54,18 @@ func getPearsonCorrelationCoefficient(values []int) float64 {
 		sumY += float64(value)
 	}
 
-	meanX := sumX / float64(len(values))
-	meanY := sumY / float64(len(values))
-
-	var covariance, xDeviationSquared, yDeviationSquared float64
+	sums := regressionSums{
+		meanX: sumX / float64(len(values)),
+		meanY: sumY / float64(len(values)),
+	}
 	for index, value := range values {
-		xDeviation := float64(index) - meanX
-		yDeviation := float64(value) - meanY
+		xDeviation := float64(index) - sums.meanX
+		yDeviation := float64(value) - sums.meanY
 
-		covariance += xDeviation * yDeviation
-		xDeviationSquared += xDeviation * xDeviation
-		yDeviationSquared += yDeviation * yDeviation
+		sums.covariance += xDeviation * yDeviation
+		sums.xDeviationSquared += xDeviation * xDeviation
+		sums.yDeviationSquared += yDeviation * yDeviation
 	}
 
-	denominator := math.Sqrt(xDeviationSquared * yDeviationSquared)
-	if denominator == 0 {
-		return math.NaN()
-	}
-
-	return covariance / denominator
+	return sums, nil
 }
