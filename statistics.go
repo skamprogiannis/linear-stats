@@ -43,3 +43,35 @@ func calculateStats(nums []int) stats {
 		standardDeviation: int(math.Round(math.Sqrt(variance))),
 	}
 }
+
+func getPearsonCorrelationCoefficient(values []int) float64 {
+	if len(values) < 2 {
+		return math.NaN()
+	}
+
+	var sumX, sumY float64
+	for index, value := range values {
+		sumX += float64(index)
+		sumY += float64(value)
+	}
+
+	meanX := sumX / float64(len(values))
+	meanY := sumY / float64(len(values))
+
+	var covariance, xDeviationSquared, yDeviationSquared float64
+	for index, value := range values {
+		xDeviation := float64(index) - meanX
+		yDeviation := float64(value) - meanY
+
+		covariance += xDeviation * yDeviation
+		xDeviationSquared += xDeviation * xDeviation
+		yDeviationSquared += yDeviation * yDeviation
+	}
+
+	denominator := math.Sqrt(xDeviationSquared * yDeviationSquared)
+	if denominator == 0 {
+		return math.NaN()
+	}
+
+	return covariance / denominator
+}
