@@ -1,3 +1,3 @@
-module linear-stats 
+module linear-stats
 
 go 1.19
